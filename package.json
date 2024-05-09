@@ -1,0 +1,13 @@
+{
+  "name": "node-dc-issue",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "node-datachannel": "^0.9.0",
+    "ws": "^8.17.0"
+  }
+}

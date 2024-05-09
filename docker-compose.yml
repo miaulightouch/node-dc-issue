@@ -1,0 +1,21 @@
+services:
+  server:
+    image: airensoft/ovenmediaengine:0.16.5
+    restart: unless-stopped
+
+  broadcaster:
+    depends_on:
+      - server
+    restart: unless-stopped
+    image: ossrs/srs:encoder
+    command: ["/bin/bash", "-c", "ffmpeg -stream_loop -1 -re -i doc/source.flv -c copy -f flv rtmp://server:1935/app/test"]
+
+  clients:
+    depends_on:
+      - broadcaster
+    # restart: unless-stopped
+    build: .
+    environment:
+      - PEERS=100
+      - URL=ws://server:3333/app/test
+      - DEBUG=true
