@@ -18,4 +18,3 @@ services:
     environment:
       - PEERS=100
       - URL=ws://server:3333/app/test
-      - DEBUG=true

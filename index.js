@@ -1,11 +1,11 @@
+import WebSocket from "ws";
 import {
   Audio,
-  PeerConnection,
-  RtcpReceivingSession,
   Video,
   initLogger,
+  PeerConnection,
+  RtcpReceivingSession,
 } from "node-datachannel";
-import WebSocket from "ws";
 
 initLogger("Debug");
 
@@ -13,27 +13,11 @@ const { PEERS, URL } = process.env;
 
 class Client {
   constructor() {
-    this.ws = this.createWs();
-  }
-
-  send(data) {
-    this.ws.send(JSON.stringify(data));
-  }
-
-  createWs() {
-    if (this.ws) {
-      this.ws.removeAllListeners();
-      this.ws.terminate();
-    }
-
     const ws = new WebSocket(URL);
     ws.on("open", () => {
-      this.connect();
+      this.send({ command: "request_offer" });
     });
 
-    ws.on("close", () => {});
-
-    let timer = 0;
     ws.on("message", (msg, isBinary) => {
       if (isBinary) return;
 
@@ -41,15 +25,10 @@ class Client {
         const data = JSON.parse(msg.toString("utf-8"));
         if (data.error) {
           console.error("[ws:err]", data);
-          clearTimeout(timer);
-          timer = setTimeout(() => {
-            this.connect();
-          }, 1000);
           return;
         }
 
         if (data.command === "offer") {
-          clearTimeout(timer);
           console.log("[ws:offer]", { ...data, sdp: undefined });
           this.onOffer(data);
           return;
@@ -61,24 +40,25 @@ class Client {
       }
     });
 
-    return ws;
+    this.ws = ws;
+  }
+
+  send(data) {
+    this.ws.send(JSON.stringify(data));
   }
 
   onOffer(data) {
-    if (this.peer) {
-      this.peer.close();
-    }
     this.peer = new PeerConnection(data.id.toString(), { iceServers: [] });
 
     this.peer.onLocalDescription((sdp, type) => {
-      if (type === "answer") {
-        this.send({
-          command: "answer",
-          id: data.id,
-          peer_id: data.peer_id,
-          sdp: { sdp, type },
-        });
-      }
+      if (type !== "answer") return;
+
+      this.send({
+        command: "answer",
+        id: data.id,
+        peer_id: data.peer_id,
+        sdp: { sdp, type },
+      });
     });
 
     this.peer.onLocalCandidate((candidate, mid) => {
@@ -92,12 +72,8 @@ class Client {
     });
 
     this.peer.onStateChange((state) => {
-      console.log("[peer:state]", data.id.toString(), state);
       this.state = state;
-      if (state === "closed") {
-        this.connect();
-        this.peer.close();
-      }
+      console.log("[peer:state]", data.id.toString(), state);
     });
 
     this.peer.setRemoteDescription(data.sdp.sdp, data.sdp.type);
@@ -121,14 +97,6 @@ class Client {
       this.peer.addRemoteCandidate(candidate, "\0");
     });
   }
-
-  connect() {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      this.ws = this.createWs();
-    }
-
-    return this.send({ command: "request_offer" });
-  }
 }
 
 const clients = [];
@@ -136,13 +104,10 @@ for (let i = 0; i < +(PEERS || 1); i++) {
   clients.push(new Client());
 }
 
-// setInterval(() => {
-//   const stats = {};
-
-//   clients.forEach((client) => {
-//     const stat = client.state || "unknown";
-//     stats[stat] = (stats[stat] || 0) + 1;
-//   });
-
-//   console.table([stats]);
-// }, 5000);
+setInterval(() => {
+  const stats = {};
+  clients.forEach((client) => {
+    stats[client.state] = (stats[client.state] || 0) + 1;
+  });
+  console.table([stats]);
+}, 10000);
