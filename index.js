@@ -25,6 +25,7 @@ class Client {
         const data = JSON.parse(msg.toString("utf-8"));
         if (data.error) {
           console.error("[ws:err]", data);
+          this.send({ command: "request_offer" });
           return;
         }
 
