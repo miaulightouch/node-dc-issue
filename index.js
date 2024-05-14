@@ -77,9 +77,10 @@ class Client {
       console.log("[peer:state]", data.id.toString(), state);
     });
 
+    this.tracks = [];
     this.peer.onTrack((track) => {
       const type = track.type();
-      // setInterval(() => track.isOpen(), 1000); // wtf
+      this.tracks.push(track); // keep tracks to avoid garbage collection
       track.onMessage((msg) => {
         console.log(data.id.toString(), type, msg.length);
         msg = null
