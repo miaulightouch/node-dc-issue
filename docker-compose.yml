@@ -16,5 +16,5 @@ services:
     # restart: unless-stopped
     build: .
     environment:
-      - PEERS=100
+      - PEERS=1
       - URL=ws://server:3333/app/test

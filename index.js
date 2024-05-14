@@ -77,20 +77,16 @@ class Client {
       console.log("[peer:state]", data.id.toString(), state);
     });
 
+    this.peer.onTrack((track) => {
+      const type = track.type();
+      // setInterval(() => track.isOpen(), 1000); // wtf
+      track.onMessage((msg) => {
+        console.log(data.id.toString(), type, msg.length);
+        msg = null
+      });
+    });
+
     this.peer.setRemoteDescription(data.sdp.sdp, data.sdp.type);
-
-    const session = new RtcpReceivingSession();
-    const audio = new Audio("audio", "RecvOnly");
-    audio.addOpusCodec(110);
-    audio.setBitrate(128);
-    const audioTrack = this.peer.addTrack(audio);
-    audioTrack.setMediaHandler(session);
-
-    const video = new Video("video", "RecvOnly");
-    video.addH264Codec(98);
-    video.setBitrate(3000);
-    const videoTrack = this.peer.addTrack(video);
-    videoTrack.setMediaHandler(session);
 
     this.peer.setLocalDescription();
 
